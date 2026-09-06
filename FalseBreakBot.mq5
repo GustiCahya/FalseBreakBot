@@ -17,24 +17,24 @@ enum ENUM_LOT_TYPE
    LOT_RISK  = 1  // Risk % of Initial Balance
 };
 
-input bool   TrendFilterEnabled    = true;      // Aktifkan filter uptrend (blokir sell saat uptrend)
+input bool   TrendFilterEnabled    = false;      // Aktifkan filter uptrend (blokir sell saat uptrend)
 input int    PivotRightBars        = 3;         // Bar kanan untuk konfirmasi swing high
-input int    PivotLeftBars         = 3;         // Bar kiri untuk konfirmasi swing high
-input int    TrendPivotBars        = 5;         // Bar kiri+kanan untuk deteksi swing pivot trend
-input int    MaxActiveLevels       = 40;        // Batas level aktif dipantau bersamaan
-input int    TrendLookback         = 200;       // Berapa bar ke belakang untuk mencari 2 swing high/low
+input int    PivotLeftBars         = 11;         // Bar kiri untuk konfirmasi swing high
+input int    TrendPivotBars        = 13;         // Bar kiri+kanan untuk deteksi swing pivot trend
+input int    MaxActiveLevels       = 211;        // Batas level aktif dipantau bersamaan
+input int    TrendLookback         = 210;       // Berapa bar ke belakang untuk mencari 2 swing high/low
 input bool   TriggerOnlyOnRetest   = false;     // false=setiap dot. true=hanya saat retest (equal high)
-input double EntryBufferPips       = 3;         // Jarak Sell Stop di bawah low candle swept (pips)
-input int    HistoryBarsBackfill   = 500;       // Jumlah bar history di-scan saat EA pertama nempel
+input double EntryBufferPips       = 14.7;         // Jarak Sell Stop di bawah low candle swept (pips)
+input int    HistoryBarsBackfill   = 4421;       // Jumlah bar history di-scan saat EA pertama nempel
 input double LotSize               = 0.10;      // Lot tetap (jika LOT_FIXED)
 input ulong  MagicNumber           = 778899;    // Magic Number
 input ENUM_LOT_TYPE LotType        = LOT_FIXED; // Metode perhitungan lot
-input double SweepMinPips          = 2;         // Minimum wick di atas level agar dianggap swept (pips)
-input int    PendingExpirationBars = 5;         // Order pending dibatalkan otomatis jika belum kena dlm N bar
+input double SweepMinPips          = 11;         // Minimum wick di atas level agar dianggap swept (pips)
+input int    PendingExpirationBars = 6;         // Order pending dibatalkan otomatis jika belum kena dlm N bar
 input double RiskPercent           = 0.5;       // Risk % per trade (jika LOT_RISK)
 input bool   OnlyOnePendingAtATime = false;     // Skip sinyal baru jika masih ada posisi/pending terbuka
-input double SL_Pips               = 55;        // Stop Loss (pips)
-input double TP_Pips               = 95;        // Take Profit (pips)
+input double SL_Pips               = 45;        // Stop Loss (pips)
+input double TP_Pips               = 70;        // Take Profit (pips)
 input bool   ShowLevelsOnChart     = true;      // Tampilkan level di chart
 input double TolerancePips         = 15;        // Toleransi harga dianggap "level sama" (pips)
 input color  DotColor              = clrRed;    // Warna dot biasa
