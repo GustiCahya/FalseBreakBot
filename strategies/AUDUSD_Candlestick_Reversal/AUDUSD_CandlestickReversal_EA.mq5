@@ -13,7 +13,7 @@
 //=== GENERAL SETTINGS ===
 input string   Sep0                = "=== General Settings ===";           // ---
 input double   InpLotSize          = 0.01;    // Fixed Lot Size
-input double   InpRiskReward       = 1.3;     // Risk-Reward Ratio (e.g. 1.3 = 1:1.3)
+input double   InpRiskReward       = 1.06;     // Risk-Reward Ratio (e.g. 1.3 = 1:1.3)
 input double   InpSLBufferPips     = 5.0;     // Stop Loss Buffer (pips)
 input int      InpMagicNumber      = 20260906;// Magic Number
 input int      InpMaxOpenTrades    = 3;       // Max simultaneous open trades
@@ -21,8 +21,8 @@ input int      InpTrendBars        = 5;       // Bars to confirm trend context
 
 //=== BULLISH PATTERNS ON/OFF ===
 input string   Sep1                = "=== Bullish Patterns ===";           // ---
-input bool     InpUseHammer        = false;    // Use Hammer
-input bool     InpUseInvHammer     = true;    // Use Inverted Hammer
+input bool     InpUseHammer        = true;    // Use Hammer
+input bool     InpUseInvHammer     = false;    // Use Inverted Hammer
 input bool     InpUseBullEngulf    = false;    // Use Bullish Engulfing
 input bool     InpUseMorningStar   = false;    // Use Morning Star
 input bool     InpUsePiercingLine  = false;    // Use Piercing Line
@@ -31,19 +31,19 @@ input bool     InpUseDragonflyDoji = true;    // Use Dragonfly Doji
 
 //=== BEARISH PATTERNS ON/OFF ===
 input string   Sep2                = "=== Bearish Patterns ===";           // ---
-input bool     InpUseShootStar     = true;    // Use Shooting Star
-input bool     InpUseHangingMan    = true;    // Use Hanging Man
+input bool     InpUseShootStar     = false;    // Use Shooting Star
+input bool     InpUseHangingMan    = false;    // Use Hanging Man
 input bool     InpUseBearEngulf    = false;    // Use Bearish Engulfing
-input bool     InpUseEveningStar   = true;    // Use Evening Star
-input bool     InpUseDarkCloud     = true;    // Use Dark Cloud Cover
+input bool     InpUseEveningStar   = false;    // Use Evening Star
+input bool     InpUseDarkCloud     = false;    // Use Dark Cloud Cover
 input bool     InpUseBearHarami    = false;    // Use Bearish Harami
 input bool     InpUseGravestDoji   = false;    // Use Gravestone Doji
 
 //=== PATTERN THRESHOLDS ===
 input string   Sep3                = "=== Pattern Thresholds ===";         // ---
 input double   InpPinBarRatio      = 2.0;     // Pin Bar shadow/body ratio
-input double   InpDojiMaxBodyPct   = 0.1;     // Doji max body % of range
-input double   InpDojiShadowPct    = 0.7;     // Doji min dominant shadow % of range
+input double   InpDojiMaxBodyPct   = 0.41;     // Doji max body % of range
+input double   InpDojiShadowPct    = 1.19;     // Doji min dominant shadow % of range
 input double   InpMinBodyPct       = 0.5;     // Min body % for large candles (Star)
 input double   InpPiercePct        = 0.5;     // Piercing/Dark Cloud min penetration %
 input double   InpHaramiMotherPct  = 0.5;     // Harami mother min body % of range
