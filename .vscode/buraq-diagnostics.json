@@ -1,0 +1,148 @@
+{
+    "d:\\projects\\Bot\\FalseBreakBot.mq5": [
+        {
+            "file": "d:\\projects\\Bot\\FalseBreakBot.mq5",
+            "message": "file 'C:\\Users\\gusti\\AppData\\Roaming\\MetaQuotes\\Terminal\\D0E8209F77C8CF37AD8BF550E51FF075\\MQL5\\Include\\Include\\Trade\\Trade.mqh' not found",
+            "range": {
+                "start": {
+                    "line": 8,
+                    "character": 10
+                },
+                "end": {
+                    "line": 8,
+                    "character": 110
+                }
+            },
+            "severity": "Error",
+            "code": "106"
+        },
+        {
+            "file": "d:\\projects\\Bot\\FalseBreakBot.mq5",
+            "message": "'CTrade' - unexpected token, probably type is missing?",
+            "range": {
+                "start": {
+                    "line": 47,
+                    "character": 0
+                },
+                "end": {
+                    "line": 47,
+                    "character": 100
+                }
+            },
+            "severity": "Error",
+            "code": "149"
+        },
+        {
+            "file": "d:\\projects\\Bot\\FalseBreakBot.mq5",
+            "message": "'trade' - semicolon expected",
+            "range": {
+                "start": {
+                    "line": 47,
+                    "character": 9
+                },
+                "end": {
+                    "line": 47,
+                    "character": 109
+                }
+            },
+            "severity": "Error",
+            "code": "154"
+        },
+        {
+            "file": "d:\\projects\\Bot\\FalseBreakBot.mq5",
+            "message": "undeclared identifier 'trade'",
+            "range": {
+                "start": {
+                    "line": 55,
+                    "character": 3
+                },
+                "end": {
+                    "line": 55,
+                    "character": 103
+                }
+            },
+            "severity": "Error",
+            "code": "256"
+        },
+        {
+            "file": "d:\\projects\\Bot\\FalseBreakBot.mq5",
+            "message": "undeclared identifier 'trade'",
+            "range": {
+                "start": {
+                    "line": 56,
+                    "character": 3
+                },
+                "end": {
+                    "line": 56,
+                    "character": 103
+                }
+            },
+            "severity": "Error",
+            "code": "256"
+        },
+        {
+            "file": "d:\\projects\\Bot\\FalseBreakBot.mq5",
+            "message": "undeclared identifier 'trade'",
+            "range": {
+                "start": {
+                    "line": 206,
+                    "character": 13
+                },
+                "end": {
+                    "line": 206,
+                    "character": 113
+                }
+            },
+            "severity": "Error",
+            "code": "256"
+        },
+        {
+            "file": "d:\\projects\\Bot\\FalseBreakBot.mq5",
+            "message": "undeclared identifier 'trade'",
+            "range": {
+                "start": {
+                    "line": 209,
+                    "character": 40
+                },
+                "end": {
+                    "line": 209,
+                    "character": 140
+                }
+            },
+            "severity": "Error",
+            "code": "256"
+        },
+        {
+            "file": "d:\\projects\\Bot\\FalseBreakBot.mq5",
+            "message": "';' - unexpected token",
+            "range": {
+                "start": {
+                    "line": 209,
+                    "character": 73
+                },
+                "end": {
+                    "line": 209,
+                    "character": 173
+                }
+            },
+            "severity": "Error",
+            "code": "149"
+        },
+        {
+            "file": "d:\\projects\\Bot\\FalseBreakBot.mq5",
+            "message": "';' - unexpected token",
+            "range": {
+                "start": {
+                    "line": 209,
+                    "character": 73
+                },
+                "end": {
+                    "line": 209,
+                    "character": 173
+                }
+            },
+            "severity": "Error",
+            "code": "149"
+        }
+    ]
+}

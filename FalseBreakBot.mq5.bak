@@ -1,0 +1,315 @@
+//+------------------------------------------------------------------+
+//|                        ResistanceRejection_SellStop_EA.mq5       |
+//|  Strategi: setiap kali muncul titik penanda (dot) di puncak      |
+//|  swing high -> pasang Sell Stop di bawah low candle puncak tsb.  |
+//|  SL/TP tetap (pips).                                             |
+//+------------------------------------------------------------------+
+#property copyright "Custom EA"
+#property version   "1.00"
+#include <Trade\Trade.mqh>
+
+//---------------- Input: deteksi level resistance ----------------
+input int    PivotLeftBars     = 3;     // Bar kiri untuk konfirmasi swing high
+input int    PivotRightBars    = 3;     // Bar kanan untuk konfirmasi swing high
+input double TolerancePips     = 15;    // Toleransi harga dianggap "level sama" (pips)
+input int    MaxActiveLevels   = 40;    // Batas level aktif dipantau bersamaan
+input int    HistoryBarsBackfill = 500; // Jumlah bar history di-scan saat EA pertama nempel
+
+//---------------- Input: eksekusi order ----------------
+input double LotSize               = 0.10; // Lot tetap
+input double SL_Pips                = 55;   // Stop Loss (pips)
+input double TP_Pips                = 95;   // Take Profit (pips)
+input double EntryBufferPips        = 3;    // Jarak Sell Stop di bawah low candle pivot (titik dot)
+input int    PendingExpirationBars  = 5;    // Order pending dibatalkan otomatis jika belum kena dlm N bar
+input bool   OnlyOnePendingAtATime  = false; // Skip sinyal baru jika masih ada posisi/pending terbuka
+input bool   TriggerOnlyOnRetest    = false;// false = trigger di SETIAP dot (level baru + retest). true = hanya saat retest (equal high)
+input ulong  MagicNumber            = 778899;
+
+//---------------- Input: visualisasi (opsional) ----------------
+input bool   ShowLevelsOnChart = true;
+input color  ActiveLineColor   = clrSilver;
+input color  RetestColor       = clrRed;
+input color  DotColor          = clrRed;
+
+//---------------- Struct level resistance ----------------
+struct SLevel
+{
+   long     id;
+   double   price;
+   datetime originTime;
+   datetime lastTouchTime;
+   bool     active;
+};
+
+SLevel   g_levels[];
+long     g_nextId = 1;
+double   g_pip;
+datetime g_lastBarTime = 0;
+CTrade   trade;
+
+//+------------------------------------------------------------------+
+int OnInit()
+{
+   int digitsAdjust = (_Digits == 3 || _Digits == 5) ? 10 : 1;
+   g_pip = _Point * digitsAdjust;
+
+   trade.SetExpertMagicNumber(MagicNumber);
+   trade.SetTypeFillingBySymbol(_Symbol);
+
+   ArrayResize(g_levels, 0);
+   BackfillHistory();
+
+   g_lastBarTime = iTime(_Symbol, _Period, 0);
+   return(INIT_SUCCEEDED);
+}
+
+void OnDeinit(const int reason)
+{
+   if(ShowLevelsOnChart) ObjectsDeleteAll(0, "EQH_");
+}
+
+//+------------------------------------------------------------------+
+//| Bangun level dari history yang sudah ada, TANPA memicu order      |
+//+------------------------------------------------------------------+
+void BackfillHistory()
+{
+   int bars = MathMin(HistoryBarsBackfill, iBars(_Symbol, _Period) - PivotRightBars - 2);
+   if(bars <= PivotLeftBars + PivotRightBars) return;
+
+   for(int shift = bars; shift >= PivotRightBars + 1; shift--)
+   {
+      // breakout check pakai close bar di shift (yg lebih lama dari pivot yg sedang dicek juga valid)
+      double c = iClose(_Symbol, _Period, shift);
+      datetime t = iTime(_Symbol, _Period, shift);
+      ProcessBreakout(c, t, false);
+
+      if(IsPivotHighAtShift(shift))
+         HandleNewPivot(t, iHigh(_Symbol, _Period, shift), iLow(_Symbol, _Period, shift), false);
+   }
+}
+
+//+------------------------------------------------------------------+
+void OnTick()
+{
+   datetime t0 = iTime(_Symbol, _Period, 0);
+   if(t0 == g_lastBarTime) return; // proses hanya sekali per bar baru
+   g_lastBarTime = t0;
+
+   // Bar yang baru saja CLOSE adalah shift 1
+   double closedClose  = iClose(_Symbol, _Period, 1);
+   datetime closedTime = iTime(_Symbol, _Period, 1);
+
+   // 1) Cek breakout level aktif pakai close candle yang baru selesai
+   ProcessBreakout(closedClose, closedTime, true);
+
+   // 2) Konfirmasi pivot baru (bar yang baru menjadi confirmable = shift PivotRightBars+1)
+   //    Setiap kali dot ini terkonfirmasi -> HandleNewPivot yang akan memicu Sell Stop
+   int pivotShift = PivotRightBars + 1;
+   if(IsPivotHighAtShift(pivotShift))
+   {
+      datetime pt = iTime(_Symbol, _Period, pivotShift);
+      double   pp = iHigh(_Symbol, _Period, pivotShift);
+      double   pl = iLow(_Symbol, _Period, pivotShift);
+      HandleNewPivot(pt, pp, pl, true);
+   }
+}
+
+//+------------------------------------------------------------------+
+bool IsPivotHighAtShift(int shift)
+{
+   double val = iHigh(_Symbol, _Period, shift);
+   for(int k = 1; k <= PivotLeftBars; k++)
+      if(iHigh(_Symbol, _Period, shift + k) > val) return(false); // bar lebih lama (kiri)
+   for(int k = 1; k <= PivotRightBars; k++)
+      if(iHigh(_Symbol, _Period, shift - k) > val) return(false); // bar lebih baru (kanan)
+   return(true);
+}
+
+//+------------------------------------------------------------------+
+//| Update status breakout semua level aktif                          |
+//+------------------------------------------------------------------+
+void ProcessBreakout(double closePrice, datetime t, bool draw)
+{
+   for(int i = ArraySize(g_levels) - 1; i >= 0; i--)
+   {
+      if(!g_levels[i].active) continue;
+      if(closePrice > g_levels[i].price)
+      {
+         g_levels[i].active = false;
+         if(draw && ShowLevelsOnChart) FinalizeLine(g_levels[i], t);
+      }
+   }
+}
+
+//+------------------------------------------------------------------+
+//| Pivot baru -> cocokkan ke level aktif (retest) atau bikin baru     |
+//+------------------------------------------------------------------+
+void HandleNewPivot(datetime t, double price, double lowAtPivot, bool draw)
+{
+   int matchIdx = -1;
+   double bestDiff = DBL_MAX;
+   for(int i = 0; i < ArraySize(g_levels); i++)
+   {
+      if(!g_levels[i].active) continue;
+      double diff = MathAbs(g_levels[i].price - price);
+      if(diff <= TolerancePips * g_pip && diff < bestDiff){ bestDiff = diff; matchIdx = i; }
+   }
+
+   bool isRetest = (matchIdx >= 0);
+
+   if(isRetest)
+   {
+      g_levels[matchIdx].lastTouchTime = t;
+      if(draw && ShowLevelsOnChart){ DrawDot(t, price, g_levels[matchIdx].id); DrawRetestLine(g_levels[matchIdx]); }
+   }
+   else
+   {
+      SLevel lvl;
+      lvl.id = g_nextId++;
+      lvl.price = price;
+      lvl.originTime = t;
+      lvl.lastTouchTime = t;
+      lvl.active = true;
+      int n = ArraySize(g_levels);
+      ArrayResize(g_levels, n+1);
+      g_levels[n] = lvl;
+      if(draw && ShowLevelsOnChart){ DrawDot(t, price, lvl.id); DrawActiveLine(lvl); }
+      PruneOldLevels();
+   }
+
+   // ---- INTI STRATEGI: dot baru saja muncul -> pasang Sell Stop ----
+   // (hanya untuk kejadian LIVE, bukan saat backfill history)
+   if(draw && (!TriggerOnlyOnRetest || isRetest))
+      PlaceSellStop(lowAtPivot, t);
+}
+
+//+------------------------------------------------------------------+
+void PlaceSellStop(double candleLow, datetime signalTime)
+{
+   if(OnlyOnePendingAtATime && HasOpenOrPending()) return;
+
+   double entry = NormalizeDouble(candleLow - EntryBufferPips * g_pip, _Digits);
+   double sl    = NormalizeDouble(entry + SL_Pips * g_pip, _Digits);
+   double tp    = NormalizeDouble(entry - TP_Pips * g_pip, _Digits);
+
+   // Validasi jarak minimum broker (stops level)
+   double stopsLevelPts = (double)SymbolInfoInteger(_Symbol, SYMBOL_TRADE_STOPS_LEVEL) * _Point;
+   double bid = SymbolInfoDouble(_Symbol, SYMBOL_BID);
+   if(bid - entry < stopsLevelPts)
+   {
+      Print("Sinyal dilewati: jarak entry ke harga pasar terlalu dekat (stops level broker).");
+      return;
+   }
+
+   double vol = NormalizeVolume(LotSize);
+   datetime expiration = signalTime + (datetime)(PendingExpirationBars * PeriodSeconds(_Period));
+
+   bool ok = trade.SellStop(vol, entry, _Symbol, sl, tp, ORDER_TIME_SPECIFIED, expiration,
+                             "Resistance Reject SellStop");
+   if(!ok)
+      Print("Gagal pasang Sell Stop: ", trade.ResultRetcodeDescription());
+   else
+      Print("Sell Stop dipasang @", entry, " SL=", sl, " TP=", tp);
+}
+
+//+------------------------------------------------------------------+
+bool HasOpenOrPending()
+{
+   for(int i = 0; i < PositionsTotal(); i++)
+   {
+      ulong ticket = PositionGetTicket(i);
+      if(ticket > 0 && PositionGetString(POSITION_SYMBOL) == _Symbol &&
+         PositionGetInteger(POSITION_MAGIC) == (long)MagicNumber) return(true);
+   }
+   for(int i = 0; i < OrdersTotal(); i++)
+   {
+      ulong ticket = OrderGetTicket(i);
+      if(ticket > 0 && OrderGetString(ORDER_SYMBOL) == _Symbol &&
+         OrderGetInteger(ORDER_MAGIC) == (long)MagicNumber) return(true);
+   }
+   return(false);
+}
+
+//+------------------------------------------------------------------+
+double NormalizeVolume(double vol)
+{
+   double minVol  = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MIN);
+   double maxVol  = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_MAX);
+   double stepVol = SymbolInfoDouble(_Symbol, SYMBOL_VOLUME_STEP);
+   vol = MathRound(vol / stepVol) * stepVol;
+   vol = MathMax(minVol, MathMin(maxVol, vol));
+   return(vol);
+}
+
+//+------------------------------------------------------------------+
+//| Buang level aktif paling lama kalau kepenuhan                     |
+//+------------------------------------------------------------------+
+void PruneOldLevels()
+{
+   int activeCount = 0;
+   for(int i = 0; i < ArraySize(g_levels); i++) if(g_levels[i].active) activeCount++;
+   while(activeCount > MaxActiveLevels)
+   {
+      int oldestIdx = -1; datetime oldestTime = 0;
+      for(int i = 0; i < ArraySize(g_levels); i++)
+      {
+         if(!g_levels[i].active) continue;
+         if(oldestIdx == -1 || g_levels[i].originTime < oldestTime){ oldestIdx = i; oldestTime = g_levels[i].originTime; }
+      }
+      if(oldestIdx == -1) break;
+      g_levels[oldestIdx].active = false;
+      activeCount--;
+   }
+}
+
+//+------------------------------------------------------------------+
+//| Visualisasi (opsional, sama seperti versi indikator)               |
+//+------------------------------------------------------------------+
+string LineName(long id)   { return "EQH_LINE_"   + IntegerToString(id); }
+string RetestName(long id) { return "EQH_RETEST_" + IntegerToString(id); }
+string DotName(long id, datetime t) { return "EQH_DOT_" + IntegerToString(id) + "_" + IntegerToString((long)t); }
+
+void DrawActiveLine(SLevel &lvl)
+{
+   string name = LineName(lvl.id);
+   ObjectDelete(0, name);
+   ObjectCreate(0, name, OBJ_TREND, 0, lvl.originTime, lvl.price, lvl.originTime, lvl.price);
+   ObjectSetInteger(0, name, OBJPROP_COLOR, ActiveLineColor);
+   ObjectSetInteger(0, name, OBJPROP_STYLE, STYLE_SOLID);
+   ObjectSetInteger(0, name, OBJPROP_WIDTH, 1);
+   ObjectSetInteger(0, name, OBJPROP_RAY_RIGHT, true);
+   ObjectSetInteger(0, name, OBJPROP_BACK, true);
+}
+
+void FinalizeLine(SLevel &lvl, datetime breakTime)
+{
+   string name = LineName(lvl.id);
+   if(ObjectFind(0, name) >= 0)
+   {
+      ObjectSetInteger(0, name, OBJPROP_RAY_RIGHT, false);
+      ObjectMove(0, name, 1, breakTime, lvl.price);
+   }
+}
+
+void DrawRetestLine(SLevel &lvl)
+{
+   string name = RetestName(lvl.id);
+   ObjectDelete(0, name);
+   ObjectCreate(0, name, OBJ_TREND, 0, lvl.originTime, lvl.price, lvl.lastTouchTime, lvl.price);
+   ObjectSetInteger(0, name, OBJPROP_COLOR, RetestColor);
+   ObjectSetInteger(0, name, OBJPROP_STYLE, STYLE_SOLID);
+   ObjectSetInteger(0, name, OBJPROP_WIDTH, 2);
+   ObjectSetInteger(0, name, OBJPROP_RAY_RIGHT, false);
+}
+
+void DrawDot(datetime t, double price, long id)
+{
+   string name = DotName(id, t);
+   if(ObjectFind(0, name) >= 0) return;
+   ObjectCreate(0, name, OBJ_ARROW, 0, t, price);
+   ObjectSetInteger(0, name, OBJPROP_ARROWCODE, 159);
+   ObjectSetInteger(0, name, OBJPROP_COLOR, DotColor);
+   ObjectSetInteger(0, name, OBJPROP_WIDTH, 1);
+   ObjectSetInteger(0, name, OBJPROP_ANCHOR, ANCHOR_BOTTOM);
+}
+//+------------------------------------------------------------------+
