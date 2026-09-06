@@ -21,23 +21,23 @@ input int      InpTrendBars        = 5;       // Bars to confirm trend context
 
 //=== BULLISH PATTERNS ON/OFF ===
 input string   Sep1                = "=== Bullish Patterns ===";           // ---
-input bool     InpUseHammer        = false;    // Use Hammer
+input bool     InpUseHammer        = true;    // Use Hammer
 input bool     InpUseInvHammer     = true;    // Use Inverted Hammer
-input bool     InpUseBullEngulf    = false;    // Use Bullish Engulfing
-input bool     InpUseMorningStar   = false;    // Use Morning Star
-input bool     InpUsePiercingLine  = false;    // Use Piercing Line
-input bool     InpUseBullHarami    = false;    // Use Bullish Harami
+input bool     InpUseBullEngulf    = true;    // Use Bullish Engulfing
+input bool     InpUseMorningStar   = true;    // Use Morning Star
+input bool     InpUsePiercingLine  = true;    // Use Piercing Line
+input bool     InpUseBullHarami    = true;    // Use Bullish Harami
 input bool     InpUseDragonflyDoji = true;    // Use Dragonfly Doji
 
 //=== BEARISH PATTERNS ON/OFF ===
 input string   Sep2                = "=== Bearish Patterns ===";           // ---
 input bool     InpUseShootStar     = true;    // Use Shooting Star
 input bool     InpUseHangingMan    = true;    // Use Hanging Man
-input bool     InpUseBearEngulf    = false;    // Use Bearish Engulfing
+input bool     InpUseBearEngulf    = true;    // Use Bearish Engulfing
 input bool     InpUseEveningStar   = true;    // Use Evening Star
 input bool     InpUseDarkCloud     = true;    // Use Dark Cloud Cover
-input bool     InpUseBearHarami    = false;    // Use Bearish Harami
-input bool     InpUseGravestDoji   = false;    // Use Gravestone Doji
+input bool     InpUseBearHarami    = true;    // Use Bearish Harami
+input bool     InpUseGravestDoji   = true;    // Use Gravestone Doji
 
 //=== PATTERN THRESHOLDS ===
 input string   Sep3                = "=== Pattern Thresholds ===";         // ---
