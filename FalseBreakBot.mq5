@@ -10,43 +10,37 @@
 #property version   "1.01"
 #include <Trade\Trade.mqh>
 
-//---------------- Input: deteksi level resistance ----------------
-input int    PivotLeftBars     = 3;     // Bar kiri untuk konfirmasi swing high
-input int    PivotRightBars    = 3;     // Bar kanan untuk konfirmasi swing high
-input double TolerancePips     = 15;    // Toleransi harga dianggap "level sama" (pips)
-input int    MaxActiveLevels   = 40;    // Batas level aktif dipantau bersamaan
-input int    HistoryBarsBackfill = 500; // Jumlah bar history di-scan saat EA pertama nempel
-
-//---------------- Input: filter trend (HH+HL) ----------------
-input bool   TrendFilterEnabled = true;  // Aktifkan filter uptrend (blokir sell saat uptrend)
-input int    TrendPivotBars     = 5;     // Bar kiri+kanan untuk deteksi swing pivot trend
-input int    TrendLookback      = 200;   // Berapa bar ke belakang untuk mencari 2 swing high/low
-
-//---------------- Input: eksekusi order ----------------
+//---------------- Input Parameters ----------------
 enum ENUM_LOT_TYPE
 {
    LOT_FIXED = 0, // Fixed Lot Size
    LOT_RISK  = 1  // Risk % of Initial Balance
 };
 
-input ENUM_LOT_TYPE LotType        = LOT_FIXED; // Metode perhitungan lot
+input bool   TrendFilterEnabled    = true;      // Aktifkan filter uptrend (blokir sell saat uptrend)
+input int    PivotRightBars        = 3;         // Bar kanan untuk konfirmasi swing high
+input int    PivotLeftBars         = 3;         // Bar kiri untuk konfirmasi swing high
+input int    TrendPivotBars        = 5;         // Bar kiri+kanan untuk deteksi swing pivot trend
+input int    MaxActiveLevels       = 40;        // Batas level aktif dipantau bersamaan
+input int    TrendLookback         = 200;       // Berapa bar ke belakang untuk mencari 2 swing high/low
+input bool   TriggerOnlyOnRetest   = false;     // false=setiap dot. true=hanya saat retest (equal high)
+input double EntryBufferPips       = 3;         // Jarak Sell Stop di bawah low candle swept (pips)
+input int    HistoryBarsBackfill   = 500;       // Jumlah bar history di-scan saat EA pertama nempel
 input double LotSize               = 0.10;      // Lot tetap (jika LOT_FIXED)
+input ulong  MagicNumber           = 778899;    // Magic Number
+input ENUM_LOT_TYPE LotType        = LOT_FIXED; // Metode perhitungan lot
+input double SweepMinPips          = 2;         // Minimum wick di atas level agar dianggap swept (pips)
+input int    PendingExpirationBars = 5;         // Order pending dibatalkan otomatis jika belum kena dlm N bar
 input double RiskPercent           = 0.5;       // Risk % per trade (jika LOT_RISK)
-input double SL_Pips               = 55;   // Stop Loss (pips)
-input double TP_Pips               = 95;   // Take Profit (pips)
-input double EntryBufferPips       = 3;    // Jarak Sell Stop di bawah low candle swept (pips)
-input double SweepMinPips          = 2;    // Minimum wick di atas level agar dianggap swept (pips)
-input int    PendingExpirationBars = 5;    // Order pending dibatalkan otomatis jika belum kena dlm N bar
-input bool   OnlyOnePendingAtATime = false;// Skip sinyal baru jika masih ada posisi/pending terbuka
-input bool   TriggerOnlyOnRetest   = false;// false=setiap dot. true=hanya saat retest (equal high)
-input ulong  MagicNumber           = 778899;
-
-//---------------- Input: visualisasi (opsional) ----------------
-input bool   ShowLevelsOnChart = true;
-input color  ActiveLineColor   = clrSilver;
-input color  RetestColor       = clrRed;
-input color  DotColor          = clrRed;
-input color  SweepDotColor     = clrOrange; // Warna dot untuk false break / swept
+input bool   OnlyOnePendingAtATime = false;     // Skip sinyal baru jika masih ada posisi/pending terbuka
+input double SL_Pips               = 55;        // Stop Loss (pips)
+input double TP_Pips               = 95;        // Take Profit (pips)
+input bool   ShowLevelsOnChart     = true;      // Tampilkan level di chart
+input double TolerancePips         = 15;        // Toleransi harga dianggap "level sama" (pips)
+input color  DotColor              = clrRed;    // Warna dot biasa
+input color  SweepDotColor         = clrOrange; // Warna dot untuk false break / swept
+input color  ActiveLineColor       = clrSilver; // Warna garis level aktif
+input color  RetestColor           = clrRed;    // Warna garis retest
 
 //---------------- Struct level resistance ----------------
 struct SLevel
