@@ -57,53 +57,53 @@ enum ENUM_HTF
 
 //=== STRATEGY SETTINGS ===
 input string            Sep_Strategy       = "=== Strategy Settings ===";           // ---
-input ENUM_ENTRY_TF     InpEntryTF         = TF_H1;          // Entry Timeframe
-input ENUM_HTF          InpHTF             = HTF_H4;         // Higher Timeframe
-input double            InpBodyRatioMin    = 0.70;           // Min Body Ratio (0.0-1.0)
-input double            InpWickRatioMax    = 0.30;           // Max Wick Ratio (0.0-1.0)
-input int               InpMinBodySize     = 500;            // Min Body Size (points)
-input ENUM_ENTRY_MODE   InpEntryMode       = MODE_FIBO;      // Entry Mode
-input double            InpFiboLevel       = 0.382;          // Fibo Retrace Level (Primary)
-input double            InpFiboLevelSec    = 0.236;          // Fibo Retrace Level (Secondary)
-input bool              InpUseSecondFibo   = false;          // Use Secondary Fibo Level
-input int               InpFiboValidBars   = 6;              // Fibo Valid Bars (max candles to retrace)
-input double            InpMinRR           = 1.0;            // Min Risk:Reward (hard floor 0.5)
-input int               InpSLBuffer        = 30;             // SL Buffer (points beyond MC high/low)
-input bool              InpUseHTFFilter    = true;           // Use HTF Trend Filter
-input int               InpHTF_EMA_Period  = 50;             // HTF EMA Period
+input ENUM_ENTRY_TF     InpEntryTF         = TF_H1;          // InpEntryTF | Entry Timeframe
+input ENUM_HTF          InpHTF             = HTF_H4;         // InpHTF | Higher Timeframe
+input double            InpBodyRatioMin    = 0.70;           // InpBodyRatioMin | Min Body Ratio (0.0-1.0)
+input double            InpWickRatioMax    = 0.30;           // InpWickRatioMax | Max Wick Ratio (0.0-1.0)
+input int               InpMinBodySize     = 500;            // InpMinBodySize | Min Body Size (points)
+input ENUM_ENTRY_MODE   InpEntryMode       = MODE_FIBO;      // InpEntryMode | Entry Mode
+input double            InpFiboLevel       = 0.382;          // InpFiboLevel | Fibo Retrace Level (Primary)
+input double            InpFiboLevelSec    = 0.236;          // InpFiboLevelSec | Fibo Retrace Level (Secondary)
+input bool              InpUseSecondFibo   = false;          // InpUseSecondFibo | Use Secondary Fibo Level
+input int               InpFiboValidBars   = 6;              // InpFiboValidBars | Fibo Valid Bars (max candles to retrace)
+input double            InpMinRR           = 1.0;            // InpMinRR | Min Risk:Reward (hard floor 0.5)
+input int               InpSLBuffer        = 30;             // InpSLBuffer | SL Buffer (points beyond MC high/low)
+input bool              InpUseHTFFilter    = true;           // InpUseHTFFilter | Use HTF Trend Filter
+input int               InpHTF_EMA_Period  = 50;             // InpHTF_EMA_Period | HTF EMA Period
 
 //=== TP SETTINGS ===
 input string            Sep_TP             = "=== Take Profit Settings ===";       // ---
-input ENUM_TP_MODE      InpTPMode          = TP_RR_BASED;    // TP Mode
-input int               InpFixedTPPips     = 100;            // Fixed TP (points)
-input double            InpFiboExtLevel    = 1.618;          // Fibo Extension Level
+input ENUM_TP_MODE      InpTPMode          = TP_RR_BASED;    // InpTPMode | TP Mode
+input int               InpFixedTPPips     = 100;            // InpFixedTPPips | Fixed TP (points)
+input double            InpFiboExtLevel    = 1.618;          // InpFiboExtLevel | Fibo Extension Level
 
 //=== FILTER SETTINGS ===
 input string            Sep_Filter         = "=== Filter Settings ===";            // ---
-input int               InpMaxSpread       = 50;             // Max Spread (points)
-input int               InpMaxDailyTrades  = 5;              // Max Daily Trades
-input int               InpMaxConcurrent   = 2;              // Max Concurrent Positions
-input bool              InpUseSessionFilter = false;         // Use Session Filter
-input string            InpSessionStart    = "10:00";        // Session Start (server time HH:MM)
-input string            InpSessionEnd      = "20:00";        // Session End (server time HH:MM)
+input int               InpMaxSpread       = 50;             // InpMaxSpread | Max Spread (points)
+input int               InpMaxDailyTrades  = 5;              // InpMaxDailyTrades | Max Daily Trades
+input int               InpMaxConcurrent   = 2;              // InpMaxConcurrent | Max Concurrent Positions
+input bool              InpUseSessionFilter = false;         // InpUseSessionFilter | Use Session Filter
+input string            InpSessionStart    = "10:00";        // InpSessionStart | Session Start (server time HH:MM)
+input string            InpSessionEnd      = "20:00";        // InpSessionEnd | Session End (server time HH:MM)
 
 //=== RISK MANAGEMENT ===
 input string            Sep_Risk           = "=== Risk Management ===";            // ---
-input double            InpRiskPercent     = 1.0;            // Risk Per Trade (% equity)
-input bool              InpUseFixedLot     = true;           // Use Fixed Lot
-input double            InpFixedLotSize    = 0.01;           // Fixed Lot Size
-input double            InpMaxLot          = 1.00;           // Max Lot Size
-input double            InpMaxDailyLoss    = 3.0;            // Max Daily Loss (% equity)
-input double            InpMaxDrawdown     = 10.0;           // Max Drawdown (% equity)
+input double            InpRiskPercent     = 1.0;            // InpRiskPercent | Risk Per Trade (% equity)
+input bool              InpUseFixedLot     = true;           // InpUseFixedLot | Use Fixed Lot
+input double            InpFixedLotSize    = 0.01;           // InpFixedLotSize | Fixed Lot Size
+input double            InpMaxLot          = 1.00;           // InpMaxLot | Max Lot Size
+input double            InpMaxDailyLoss    = 3.0;            // InpMaxDailyLoss | Max Daily Loss (% equity)
+input double            InpMaxDrawdown     = 10.0;           // InpMaxDrawdown | Max Drawdown (% equity)
 
 //=== GENERAL SETTINGS ===
 input string            Sep_General        = "=== General Settings ===";           // ---
-input long              InpMagicNumber     = 20260908;       // Magic Number
-input string            InpTradeComment    = "MomentumCandle"; // Trade Comment
-input int               InpSlippage        = 3;              // Slippage (points)
-input bool              InpEnableTrailing  = false;          // Enable Trailing Stop
-input int               InpTrailingStart   = 100;            // Trailing Start (points profit)
-input int               InpTrailingStep    = 30;             // Trailing Step (points)
+input long              InpMagicNumber     = 20260908;       // InpMagicNumber | Magic Number
+input string            InpTradeComment    = "MomentumCandle"; // InpTradeComment | Trade Comment
+input int               InpSlippage        = 3;              // InpSlippage | Slippage (points)
+input bool              InpEnableTrailing  = false;          // InpEnableTrailing | Enable Trailing Stop
+input int               InpTrailingStart   = 100;            // InpTrailingStart | Trailing Start (points profit)
+input int               InpTrailingStep    = 30;             // InpTrailingStep | Trailing Step (points)
 
 //+------------------------------------------------------------------+
 //| GLOBAL VARIABLES                                                   |
