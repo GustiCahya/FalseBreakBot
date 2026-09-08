@@ -4,17 +4,16 @@
 //|                                                                    |
 //|  Strategy:                                                         |
 //|  1. Detect Momentum Candle (big body, small wick)                  |
-//|  2. Filter with Higher Timeframe EMA trend (Strict version)        |
+//|  2. Filter with Higher Timeframe EMA trend                         |
 //|  3. Entry: Instant at close OR Fibonacci pullback limit order      |
 //|  4. SL beyond Momentum Candle high/low + buffer                    |
 //|  5. TP by R:R ratio, fixed pip, or Fibonacci extension             |
 //|  6. Risk management: lot sizing, daily loss, drawdown guard        |
-//|  7. Counter-Trend Protection (Min distance + Double EMA)           |
 //+------------------------------------------------------------------+
-#property copyright "Momentum Candle Strategy v1.2"
+#property copyright "Momentum Candle Strategy v1.1"
 #property link      ""
-#property version   "1.20"
-#property description "Momentum Candle EA - Rizki Aditama Style + Strict HTF Filter"
+#property version   "1.10"
+#property description "Momentum Candle EA - Rizki Aditama Style"
 
 #include <Trade\Trade.mqh>
 
@@ -58,70 +57,62 @@ enum ENUM_HTF
 
 //=== STRATEGY SETTINGS ===
 input string            Sep_Strategy       = "=== Strategy Settings ===";           // ---
-input ENUM_ENTRY_TF     InpEntryTF         = TF_M5;          // Entry Timeframe
-input ENUM_HTF          InpHTF             = HTF_H1;         // Higher Timeframe
-input double            InpBodyRatioMin    = 0.70;           // Min Body Ratio (0.0-1.0)
-input double            InpWickRatioMax    = 0.30;           // Max Wick Ratio (0.0-1.0)
-input int               InpMinBodySize     = 500;            // Min Body Size (points)
-input ENUM_ENTRY_MODE   InpEntryMode       = MODE_FIBO;      // Entry Mode
-input double            InpFiboLevel       = 0.382;          // Fibo Retrace Level (Primary)
-input double            InpFiboLevelSec    = 0.236;          // Fibo Retrace Level (Secondary)
-input bool              InpUseSecondFibo   = false;          // Use Secondary Fibo Level
-input int               InpFiboValidBars   = 6;              // Fibo Valid Bars (max candles to retrace)
-input double            InpMinRR           = 1.0;            // Min Risk:Reward (hard floor 0.5)
-input int               InpSLBuffer        = 30;             // SL Buffer (points beyond MC high/low)
-input bool              InpUseHTFFilter    = true;           // Use HTF Trend Filter
-input int               InpHTF_EMA_Period  = 50;             // HTF EMA Period (Fast)
-
-//=== COUNTER-TREND PROTECTION ===
-input string            Sep_CounterTrend   = "=== Counter-Trend Protection ===";  // ---
-input bool              InpUseStrictHTF    = true;           // Use Strict HTF Filter
-input int               InpMinEMADistance  = 150;            // Min Distance from EMA (points)
-input bool              InpUseDoubleEMA    = true;           // Use Double EMA Filter
-input int               InpHTF_EMA_Slow    = 200;            // HTF EMA Slow Period
+input ENUM_ENTRY_TF     InpEntryTF         = TF_H1;          // InpEntryTF | Entry Timeframe
+input ENUM_HTF          InpHTF             = HTF_H4;         // InpHTF | Higher Timeframe
+input double            InpBodyRatioMin    = 0.70;           // InpBodyRatioMin | Min Body Ratio (0.0-1.0)
+input double            InpWickRatioMax    = 0.30;           // InpWickRatioMax | Max Wick Ratio (0.0-1.0)
+input int               InpMinBodySize     = 500;            // InpMinBodySize | Min Body Size (points)
+input ENUM_ENTRY_MODE   InpEntryMode       = MODE_FIBO;      // InpEntryMode | Entry Mode
+input double            InpFiboLevel       = 0.382;          // InpFiboLevel | Fibo Retrace Level (Primary)
+input double            InpFiboLevelSec    = 0.236;          // InpFiboLevelSec | Fibo Retrace Level (Secondary)
+input bool              InpUseSecondFibo   = false;          // InpUseSecondFibo | Use Secondary Fibo Level
+input int               InpFiboValidBars   = 6;              // InpFiboValidBars | Fibo Valid Bars (max candles to retrace)
+input double            InpMinRR           = 1.0;            // InpMinRR | Min Risk:Reward (hard floor 0.5)
+input int               InpSLBuffer        = 30;             // InpSLBuffer | SL Buffer (points beyond MC high/low)
+input bool              InpUseHTFFilter    = true;           // InpUseHTFFilter | Use HTF Trend Filter
+input int               InpHTF_EMA_Period  = 50;             // InpHTF_EMA_Period | HTF EMA Period
 
 //=== TP SETTINGS ===
 input string            Sep_TP             = "=== Take Profit Settings ===";       // ---
-input ENUM_TP_MODE      InpTPMode          = TP_RR_BASED;    // TP Mode
-input int               InpFixedTPPips     = 100;            // Fixed TP (points)
-input double            InpFiboExtLevel    = 1.618;          // Fibo Extension Level
+input ENUM_TP_MODE      InpTPMode          = TP_RR_BASED;    // InpTPMode | TP Mode
+input int               InpFixedTPPips     = 100;            // InpFixedTPPips | Fixed TP (points)
+input double            InpFiboExtLevel    = 1.618;          // InpFiboExtLevel | Fibo Extension Level
 
 //=== FILTER SETTINGS ===
 input string            Sep_Filter         = "=== Filter Settings ===";            // ---
-input int               InpMaxSpread       = 50;             // Max Spread (points)
-input int               InpMaxDailyTrades  = 5;              // Max Daily Trades
-input int               InpMaxConcurrent   = 2;              // Max Concurrent Positions
-input bool              InpUseSessionFilter = false;         // Use Session Filter
-input string            InpSessionStart    = "10:00";        // Session Start (server time HH:MM)
-input string            InpSessionEnd      = "20:00";        // Session End (server time HH:MM)
+input int               InpMaxSpread       = 50;             // InpMaxSpread | Max Spread (points)
+input int               InpMaxDailyTrades  = 5;              // InpMaxDailyTrades | Max Daily Trades
+input int               InpMaxConcurrent   = 2;              // InpMaxConcurrent | Max Concurrent Positions
+input bool              InpUseSessionFilter = false;         // InpUseSessionFilter | Use Session Filter
+input string            InpSessionStart    = "10:00";        // InpSessionStart | Session Start (server time HH:MM)
+input string            InpSessionEnd      = "20:00";        // InpSessionEnd | Session End (server time HH:MM)
 
 //=== RISK MANAGEMENT ===
 input string            Sep_Risk           = "=== Risk Management ===";            // ---
-input double            InpRiskPercent     = 1.0;            // Risk Per Trade (% equity)
-input bool              InpUseFixedLot     = true;           // Use Fixed Lot
-input double            InpFixedLotSize    = 0.01;           // Fixed Lot Size
-input double            InpMaxLot          = 1.00;           // Max Lot Size
-input double            InpMaxDailyLoss    = 3.0;            // Max Daily Loss (% equity)
-input double            InpMaxDrawdown     = 10.0;           // Max Drawdown (% equity)
+input double            InpRiskPercent     = 1.0;            // InpRiskPercent | Risk Per Trade (% equity)
+input bool              InpUseFixedLot     = true;           // InpUseFixedLot | Use Fixed Lot
+input double            InpFixedLotSize    = 0.01;           // InpFixedLotSize | Fixed Lot Size
+input double            InpMaxLot          = 1.00;           // InpMaxLot | Max Lot Size
+input double            InpMaxDailyLoss    = 3.0;            // InpMaxDailyLoss | Max Daily Loss (% equity)
+input double            InpMaxDrawdown     = 10.0;           // InpMaxDrawdown | Max Drawdown (% equity)
 
 //=== GENERAL SETTINGS ===
 input string            Sep_General        = "=== General Settings ===";           // ---
-input long              InpMagicNumber     = 20260908;       // Magic Number
-input string            InpTradeComment    = "MomentumCandle"; // Trade Comment
-input int               InpSlippage        = 3;              // Slippage (points)
-input bool              InpEnableTrailing  = false;          // Enable Trailing Stop
-input int               InpTrailingStart   = 100;            // Trailing Start (points profit)
-input int               InpTrailingStep    = 30;             // Trailing Step (points)
+input long              InpMagicNumber     = 20260908;       // InpMagicNumber | Magic Number
+input string            InpTradeComment    = "MomentumCandle"; // InpTradeComment | Trade Comment
+input int               InpSlippage        = 3;              // InpSlippage | Slippage (points)
+input bool              InpEnableTrailing  = false;          // InpEnableTrailing | Enable Trailing Stop
+input int               InpTrailingStart   = 100;            // InpTrailingStart | Trailing Start (points profit)
+input int               InpTrailingStep    = 30;             // InpTrailingStep | Trailing Step (points)
 
 //+------------------------------------------------------------------+
 //| GLOBAL VARIABLES                                                   |
 //+------------------------------------------------------------------+
 CTrade      trade;
-datetime    g_lastBarTime       = 0;
-int         g_htfEmaHandle      = INVALID_HANDLE;
-int         g_htfEmaSlowHandle  = INVALID_HANDLE;
-double      g_peakEquity        = 0;
-bool        g_drawdownPaused    = false;
+datetime    g_lastBarTime    = 0;
+int         g_htfEmaHandle   = INVALID_HANDLE;
+double      g_peakEquity     = 0;
+bool        g_drawdownPaused = false;
 
 struct FiboPendingInfo
 {
@@ -172,37 +163,24 @@ int OnInit()
    trade.SetDeviationInPoints(InpSlippage);
    trade.SetTypeFilling(ORDER_FILLING_IOC);
 
-   //--- Fast EMA
    g_htfEmaHandle = iMA(_Symbol, GetHTFTimeframe(), InpHTF_EMA_Period, 0, MODE_EMA, PRICE_CLOSE);
    if(g_htfEmaHandle == INVALID_HANDLE)
    {
-      Print("ERROR: Gagal membuat HTF EMA (Fast) handle!");
+      Print("ERROR: Gagal membuat HTF EMA indicator handle!");
       return(INIT_FAILED);
-   }
-
-   //--- Slow EMA (jika Double EMA aktif)
-   if(InpUseDoubleEMA)
-   {
-      g_htfEmaSlowHandle = iMA(_Symbol, GetHTFTimeframe(), InpHTF_EMA_Slow, 0, MODE_EMA, PRICE_CLOSE);
-      if(g_htfEmaSlowHandle == INVALID_HANDLE)
-      {
-         Print("ERROR: Gagal membuat HTF EMA (Slow) handle!");
-         return(INIT_FAILED);
-      }
    }
 
    g_peakEquity = AccountInfoDouble(ACCOUNT_EQUITY);
    g_fiboPending.isActive = false;
    g_fiboPending.ticket   = 0;
 
-   Print("=== Momentum Candle EA v1.2 Initialized ===");
+   Print("=== Momentum Candle EA Initialized ===");
    Print("Symbol=", _Symbol,
          " | EntryTF=", EnumToString(GetEntryTimeframe()),
          " | HTF=", EnumToString(GetHTFTimeframe()),
          " | EntryMode=", (InpEntryMode == MODE_INSTANT ? "Instant" : "Fibo"),
          " | MinRR=", DoubleToString(GetEffectiveMinRR(), 2),
-         " | StrictHTF=", (InpUseStrictHTF ? "ON" : "OFF"),
-         " | DoubleEMA=", (InpUseDoubleEMA ? "ON" : "OFF"));
+         " | HTFFilter=", (InpUseHTFFilter ? "ON" : "OFF"));
 
    return(INIT_SUCCEEDED);
 }
@@ -214,9 +192,6 @@ void OnDeinit(const int reason)
 {
    if(g_htfEmaHandle != INVALID_HANDLE)
       IndicatorRelease(g_htfEmaHandle);
-
-   if(g_htfEmaSlowHandle != INVALID_HANDLE)
-      IndicatorRelease(g_htfEmaSlowHandle);
 
    Print("Momentum Candle EA deinitialized. Reason: ", reason);
 }
@@ -275,6 +250,12 @@ double CalculateLotSize(double slDistancePoints)
    }
 
    double lots = riskAmount / slCostPerLot;
+
+   Print("Lot Calc: Equity=", DoubleToString(equity, 2),
+         " Risk=", DoubleToString(riskAmount, 2),
+         " SLDist=", (int)slDistancePoints, "pts",
+         " SLCost/lot=", DoubleToString(slCostPerLot, 2),
+         " Lots=", DoubleToString(lots, 4));
 
    return NormalizeLot(lots);
 }
@@ -512,51 +493,24 @@ int IsMomentumCandle(int bar, ENUM_TIMEFRAMES tf)
 }
 
 //+------------------------------------------------------------------+
-//| HTF TREND FILTER - Strict Version (Counter-Trend Protection)      |
+//| HTF TREND FILTER via EMA                                          |
 //+------------------------------------------------------------------+
 int GetHTFTrend()
 {
    if(g_htfEmaHandle == INVALID_HANDLE) return 0;
 
-   double emaFast[1];
-   if(CopyBuffer(g_htfEmaHandle, 0, 0, 1, emaFast) != 1)
+   double emaValue[1];
+   if(CopyBuffer(g_htfEmaHandle, 0, 0, 1, emaValue) != 1)
    {
-      Print("WARNING: Gagal membaca HTF EMA Fast buffer.");
+      Print("WARNING: Gagal membaca HTF EMA buffer.");
       return 0;
    }
 
    double htfClose = iClose(_Symbol, GetHTFTimeframe(), 0);
-   double distance = MathAbs(htfClose - emaFast[0]) / _Point;
 
-   //--- Strict: harga harus cukup jauh dari EMA
-   if(InpUseStrictHTF && distance < InpMinEMADistance)
-   {
-      // Terlalu dekat dengan EMA → dianggap sideways / netral
-      return 0;
-   }
-
-   int trend = 0;
-
-   if(htfClose > emaFast[0]) trend = +1;
-   else if(htfClose < emaFast[0]) trend = -1;
-
-   //--- Double EMA Filter (lebih ketat)
-   if(InpUseDoubleEMA && g_htfEmaSlowHandle != INVALID_HANDLE)
-   {
-      double emaSlow[1];
-      if(CopyBuffer(g_htfEmaSlowHandle, 0, 0, 1, emaSlow) == 1)
-      {
-         // Fast EMA harus di atas Slow EMA untuk bullish
-         if(trend > 0 && emaFast[0] < emaSlow[0])
-            trend = 0;
-
-         // Fast EMA harus di bawah Slow EMA untuk bearish
-         if(trend < 0 && emaFast[0] > emaSlow[0])
-            trend = 0;
-      }
-   }
-
-   return trend;
+   if(htfClose > emaValue[0]) return +1;
+   if(htfClose < emaValue[0]) return -1;
+   return 0;
 }
 
 //+------------------------------------------------------------------+
@@ -595,6 +549,7 @@ double CalculateTP(int direction, double entryPrice, double slDistance,
       }
 
       default:
+         // Fallback ke RR based
          if(direction > 0)
             tp = entryPrice + slDistance * effectiveRR;
          else
@@ -785,13 +740,13 @@ void ProcessSignal()
    int signal = IsMomentumCandle(1, entryTF);
    if(signal == 0) return;
 
-   //--- HTF Filter (Strict)
+   // HTF Filter
    if(InpUseHTFFilter)
    {
       int htfTrend = GetHTFTrend();
       if(htfTrend == 0)
       {
-         Print("FILTER: HTF trend neutral / terlalu dekat EMA / Double EMA tidak searah. Skipping.");
+         Print("FILTER: HTF trend neutral. Skipping.");
          return;
       }
       if(signal != htfTrend)
