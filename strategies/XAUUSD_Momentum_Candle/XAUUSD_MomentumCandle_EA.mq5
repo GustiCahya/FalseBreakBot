@@ -9,11 +9,12 @@
 //|  4. SL beyond Momentum Candle high/low + buffer                    |
 //|  5. TP by R:R ratio, fixed pip, or Fibonacci extension             |
 //|  6. Risk management: lot sizing, daily loss, drawdown guard        |
+//|  7. Consecutive Loss Pause (stop 7 hari setelah X loss beruntun)   |
 //+------------------------------------------------------------------+
-#property copyright "Momentum Candle Strategy v1.1"
+#property copyright "Momentum Candle Strategy v1.2"
 #property link      ""
-#property version   "1.10"
-#property description "Momentum Candle EA - Rizki Aditama Style"
+#property version   "1.20"
+#property description "Momentum Candle EA + Consecutive Loss Pause"
 
 #include <Trade\Trade.mqh>
 
@@ -96,6 +97,12 @@ input double            InpMaxLot          = 1.00;           // InpMaxLot | Max 
 input double            InpMaxDailyLoss    = 3.0;            // InpMaxDailyLoss | Max Daily Loss (% equity)
 input double            InpMaxDrawdown     = 10.0;           // InpMaxDrawdown | Max Drawdown (% equity)
 
+//=== CONSECUTIVE LOSS PAUSE ===
+input string            Sep_ConsecLoss     = "=== Consecutive Loss Pause ===";     // ---
+input bool              InpUseConsecPause  = true;           // InpUseConsecPause | Aktifkan Consecutive Loss Pause
+input int               InpMaxConsecLoss   = 5;              // InpMaxConsecLoss | Max Consecutive Loss (sebelum pause)
+input int               InpPauseDays       = 7;              // InpPauseDays | Lama Pause (hari)
+
 //=== GENERAL SETTINGS ===
 input string            Sep_General        = "=== General Settings ===";           // ---
 input long              InpMagicNumber     = 20260908;       // InpMagicNumber | Magic Number
@@ -109,10 +116,14 @@ input int               InpTrailingStep    = 30;             // InpTrailingStep 
 //| GLOBAL VARIABLES                                                   |
 //+------------------------------------------------------------------+
 CTrade      trade;
-datetime    g_lastBarTime    = 0;
-int         g_htfEmaHandle   = INVALID_HANDLE;
-double      g_peakEquity     = 0;
-bool        g_drawdownPaused = false;
+datetime    g_lastBarTime      = 0;
+int         g_htfEmaHandle     = INVALID_HANDLE;
+double      g_peakEquity       = 0;
+bool        g_drawdownPaused   = false;
+
+// Consecutive Loss Pause
+int         g_consecutiveLosses = 0;
+datetime    g_pauseUntil        = 0;
 
 struct FiboPendingInfo
 {
@@ -173,6 +184,8 @@ int OnInit()
    g_peakEquity = AccountInfoDouble(ACCOUNT_EQUITY);
    g_fiboPending.isActive = false;
    g_fiboPending.ticket   = 0;
+   g_consecutiveLosses    = 0;
+   g_pauseUntil           = 0;
 
    Print("=== Momentum Candle EA Initialized ===");
    Print("Symbol=", _Symbol,
@@ -180,7 +193,8 @@ int OnInit()
          " | HTF=", EnumToString(GetHTFTimeframe()),
          " | EntryMode=", (InpEntryMode == MODE_INSTANT ? "Instant" : "Fibo"),
          " | MinRR=", DoubleToString(GetEffectiveMinRR(), 2),
-         " | HTFFilter=", (InpUseHTFFilter ? "ON" : "OFF"));
+         " | HTFFilter=", (InpUseHTFFilter ? "ON" : "OFF"),
+         " | ConsecPause=", (InpUseConsecPause ? "ON" : "OFF"));
 
    return(INIT_SUCCEEDED);
 }
@@ -454,6 +468,87 @@ bool IsSpreadOK()
 }
 
 //+------------------------------------------------------------------+
+//| Update Consecutive Loss Counter                                   |
+//+------------------------------------------------------------------+
+void UpdateConsecutiveLosses()
+{
+   if(!InpUseConsecPause) return;
+
+   datetime fromTime = TimeCurrent() - 30 * 24 * 60 * 60;  // 30 hari terakhir
+   if(!HistorySelect(fromTime, TimeCurrent()))
+      return;
+
+   int consec = 0;
+   int totalDeals = HistoryDealsTotal();
+
+   // Baca dari deal paling baru ke belakang
+   for(int i = totalDeals - 1; i >= 0; i--)
+   {
+      ulong ticket = HistoryDealGetTicket(i);
+      if(ticket == 0) continue;
+
+      if(HistoryDealGetInteger(ticket, DEAL_MAGIC) != InpMagicNumber) continue;
+      if(HistoryDealGetString(ticket, DEAL_SYMBOL) != _Symbol) continue;
+
+      // Hanya hitung deal keluar (exit)
+      long entryType = HistoryDealGetInteger(ticket, DEAL_ENTRY);
+      if(entryType != DEAL_ENTRY_OUT && entryType != DEAL_ENTRY_OUT_BY) continue;
+
+      double profit = HistoryDealGetDouble(ticket, DEAL_PROFIT)
+                    + HistoryDealGetDouble(ticket, DEAL_COMMISSION)
+                    + HistoryDealGetDouble(ticket, DEAL_SWAP);
+
+      if(profit < 0)
+      {
+         consec++;
+      }
+      else if(profit > 0)
+      {
+         // Ketemu profit → stop hitung consecutive
+         break;
+      }
+      // profit == 0 (breakeven) diabaikan
+   }
+
+   g_consecutiveLosses = consec;
+
+   // Jika sudah melebihi batas → set pause
+   if(g_consecutiveLosses > InpMaxConsecLoss)
+   {
+      if(g_pauseUntil < TimeCurrent())  // hanya set jika belum sedang pause
+      {
+         g_pauseUntil = TimeCurrent() + (datetime)InpPauseDays * 24 * 60 * 60;
+         Print("=== CONSECUTIVE LOSS PAUSE AKTIF ===");
+         Print("Consecutive Losses = ", g_consecutiveLosses,
+               " | Pause sampai: ", TimeToString(g_pauseUntil, TIME_DATE|TIME_MINUTES));
+      }
+   }
+}
+
+//+------------------------------------------------------------------+
+//| Cek apakah bot sedang dalam masa pause                            |
+//+------------------------------------------------------------------+
+bool IsInPausePeriod()
+{
+   if(!InpUseConsecPause) return false;
+
+   if(TimeCurrent() < g_pauseUntil)
+   {
+      return true;  // Masih dalam masa pause
+   }
+
+   // Pause sudah habis
+   if(g_pauseUntil > 0 && TimeCurrent() >= g_pauseUntil)
+   {
+      Print("=== PAUSE SELESAI === Bot aktif kembali.");
+      g_pauseUntil = 0;
+      g_consecutiveLosses = 0;
+   }
+
+   return false;
+}
+
+//+------------------------------------------------------------------+
 //| MOMENTUM CANDLE DETECTION                                          |
 //+------------------------------------------------------------------+
 int IsMomentumCandle(int bar, ENUM_TIMEFRAMES tf)
@@ -549,7 +644,6 @@ double CalculateTP(int direction, double entryPrice, double slDistance,
       }
 
       default:
-         // Fallback ke RR based
          if(direction > 0)
             tp = entryPrice + slDistance * effectiveRR;
          else
@@ -862,7 +956,23 @@ void OnTick()
       return;
    g_lastBarTime = currentBarTime;
 
-   // Filters
+   // Update consecutive loss setiap bar baru
+   UpdateConsecutiveLosses();
+
+   // Cek apakah sedang pause
+   if(IsInPausePeriod())
+   {
+      static datetime lastPausePrint = 0;
+      if(TimeCurrent() - lastPausePrint > 3600)  // print tiap 1 jam agar tidak spam
+      {
+         Print("Bot sedang PAUSE karena consecutive loss. Aktif lagi pada: ",
+               TimeToString(g_pauseUntil, TIME_DATE|TIME_MINUTES));
+         lastPausePrint = TimeCurrent();
+      }
+      return;
+   }
+
+   // --- Filters biasa ---
    if(!IsSpreadOK()) return;
 
    if(CountDailyTrades() >= InpMaxDailyTrades)
