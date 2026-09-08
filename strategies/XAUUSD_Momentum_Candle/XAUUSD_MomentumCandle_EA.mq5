@@ -57,8 +57,8 @@ enum ENUM_HTF
 
 //=== STRATEGY SETTINGS ===
 input string            Sep_Strategy       = "=== Strategy Settings ===";           // ---
-input ENUM_ENTRY_TF     InpEntryTF         = TF_M5;          // Entry Timeframe
-input ENUM_HTF          InpHTF             = HTF_H1;         // Higher Timeframe
+input ENUM_ENTRY_TF     InpEntryTF         = TF_H1;          // Entry Timeframe
+input ENUM_HTF          InpHTF             = HTF_H4;         // Higher Timeframe
 input double            InpBodyRatioMin    = 0.70;           // Min Body Ratio (0.0-1.0)
 input double            InpWickRatioMax    = 0.30;           // Max Wick Ratio (0.0-1.0)
 input int               InpMinBodySize     = 500;            // Min Body Size (points)
